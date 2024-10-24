@@ -2,6 +2,7 @@
 name = "netgrep"
 version = "0.1.0"
 edition = "2021"
+authors = ["Andy Dixon <andy@andydixon.com>"]
 
 [dependencies]
 pcap = "0.8"
