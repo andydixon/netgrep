@@ -5,7 +5,7 @@ edition = "2021"
 authors = ["Andy Dixon <andy@andydixon.com>"]
 
 [dependencies]
-pcap = "0.8"
+pcap = "2.2"
 hexdump = "0.1"
 clap = "3.2"
 pnet_packet = "0.35"

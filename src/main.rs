@@ -103,10 +103,11 @@ fn main() {
     // Open the default device
     let mut cap = Device::lookup()
         .expect("Failed to lookup device")
+        .unwrap()
         .open()
         .expect("Failed to open device");
 
-    while let Ok(packet) = cap.next() {
+    while let Ok(packet) = cap.next_packet() {
         // Get the timestamp from the packet header
         let timestamp = packet.header.ts;
 
