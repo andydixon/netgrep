@@ -15,63 +15,89 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 fn main() {
     // Parse command-line arguments
-    let matches = App::new("Packet Filter")
+    let matches = App::new("netgrep")
         .version("1.0")
-        .author("Your Name")
-        .about("Filters packets based on criteria and performs a hexdump")
+        .author("Andy Dixon")
+        .about("Filters packets based on criteria and performs a hexdump on that packet")
         .arg(
             Arg::new("src_ip")
                 .long("src-ip")
                 .value_name("SRC_IP")
-                .help("Filter packets with source IP (use !IP to exclude)"),
+                .help("Filter packets with source IP(s) (use !IP to exclude, comma-separated for multiple IPs)")
+                .takes_value(true)
+                .use_delimiter(true),
         )
         .arg(
             Arg::new("dst_ip")
                 .long("dst-ip")
                 .value_name("DST_IP")
-                .help("Filter packets with destination IP (use !IP to exclude)"),
+                .help("Filter packets with destination IP(s) (use !IP to exclude, comma-separated for multiple IPs)")
+                .takes_value(true)
+                .use_delimiter(true),
         )
         .arg(
             Arg::new("content")
                 .long("content")
                 .value_name("CONTENT")
-                .help("Filter packets containing specific content (use !CONTENT to exclude)"),
+                .help("Filter packets containing specific content(s) (use !CONTENT to exclude, comma-separated for multiple contents)")
+                .takes_value(true)
+                .use_delimiter(true),
         )
         .arg(
             Arg::new("tcp_flags")
                 .long("tcp-flags")
                 .value_name("FLAGS")
-                .help(
-                    "Filter TCP packets with specific TCP flags (e.g., SYN,ACK; use !FLAGS to exclude)",
-                ),
+                .help("Filter TCP packets with specific TCP flags (e.g., SYN,ACK; use !FLAGS to exclude, comma-separated for multiple sets)")
+                .takes_value(true)
+                .use_delimiter(true),
         )
         .arg(
             Arg::new("src_port")
                 .long("src-port")
                 .value_name("SRC_PORT")
-                .help("Filter packets with source port (use !PORT to exclude)"),
+                .help("Filter packets with source port(s) (use !PORT to exclude, comma-separated for multiple ports)")
+                .takes_value(true)
+                .use_delimiter(true),
         )
         .arg(
             Arg::new("dst_port")
                 .long("dst-port")
                 .value_name("DST_PORT")
-                .help("Filter packets with destination port (use !PORT to exclude)"),
+                .help("Filter packets with destination port(s) (use !PORT to exclude, comma-separated for multiple ports)")
+                .takes_value(true)
+                .use_delimiter(true),
         )
         .arg(
             Arg::new("port")
                 .long("port")
                 .value_name("PORT")
-                .help("Filter packets with source or destination port (use !PORT to exclude)"),
+                .help("Filter packets with source or destination port(s) (use !PORT to exclude, comma-separated for multiple ports)")
+                .takes_value(true)
+                .use_delimiter(true),
         )
         .get_matches();
 
-    let src_ip = matches.value_of("src_ip");
-    let dst_ip = matches.value_of("dst_ip");
-    let content = matches.value_of("content");
-    let tcp_flags = matches.value_of("tcp_flags");
-    let src_port = matches.value_of("src_port");
-    let dst_port = matches.value_of("dst_port");
-    let port = matches.value_of("port");
+    let src_ips = matches
+        .get_many::<String>("src_ip")
+        .map(|vals| vals.map(|s| s.as_str()).collect::<Vec<&str>>());
+    let dst_ips = matches
+        .get_many::<String>("dst_ip")
+        .map(|vals| vals.map(|s| s.as_str()).collect::<Vec<&str>>());
+    let contents = matches
+        .get_many::<String>("content")
+        .map(|vals| vals.map(|s| s.as_str()).collect::<Vec<&str>>());
+    let tcp_flags_list = matches
+        .get_many::<String>("tcp_flags")
+        .map(|vals| vals.map(|s| s.as_str()).collect::<Vec<&str>>());
+    let src_ports = matches
+        .get_many::<String>("src_port")
+        .map(|vals| vals.map(|s| s.as_str()).collect::<Vec<&str>>());
+    let dst_ports = matches
+        .get_many::<String>("dst_port")
+        .map(|vals| vals.map(|s| s.as_str()).collect::<Vec<&str>>());
+    let ports = matches
+        .get_many::<String>("port")
+        .map(|vals| vals.map(|s| s.as_str()).collect::<Vec<&str>>());
 
     // Open the default device
     let mut cap = Device::lookup()
@@ -94,13 +120,13 @@ fn main() {
                                 // Handle TCP packet
                                 handle_tcp_packet(
                                     &ip_packet,
-                                    src_ip,
-                                    dst_ip,
-                                    src_port,
-                                    dst_port,
-                                    port,
-                                    content,
-                                    tcp_flags,
+                                    &src_ips,
+                                    &dst_ips,
+                                    &src_ports,
+                                    &dst_ports,
+                                    &ports,
+                                    &contents,
+                                    &tcp_flags_list,
                                     packet.data,
                                     timestamp,
                                 );
@@ -109,12 +135,12 @@ fn main() {
                                 // Handle UDP packet
                                 handle_udp_packet(
                                     &ip_packet,
-                                    src_ip,
-                                    dst_ip,
-                                    src_port,
-                                    dst_port,
-                                    port,
-                                    content,
+                                    &src_ips,
+                                    &dst_ips,
+                                    &src_ports,
+                                    &dst_ports,
+                                    &ports,
+                                    &contents,
                                     packet.data,
                                     timestamp,
                                 );
@@ -131,13 +157,13 @@ fn main() {
                                 // Handle TCP packet
                                 handle_tcp_packet_ipv6(
                                     &ip_packet,
-                                    src_ip,
-                                    dst_ip,
-                                    src_port,
-                                    dst_port,
-                                    port,
-                                    content,
-                                    tcp_flags,
+                                    &src_ips,
+                                    &dst_ips,
+                                    &src_ports,
+                                    &dst_ports,
+                                    &ports,
+                                    &contents,
+                                    &tcp_flags_list,
                                     packet.data,
                                     timestamp,
                                 );
@@ -146,12 +172,12 @@ fn main() {
                                 // Handle UDP packet
                                 handle_udp_packet_ipv6(
                                     &ip_packet,
-                                    src_ip,
-                                    dst_ip,
-                                    src_port,
-                                    dst_port,
-                                    port,
-                                    content,
+                                    &src_ips,
+                                    &dst_ips,
+                                    &src_ports,
+                                    &dst_ports,
+                                    &ports,
+                                    &contents,
                                     packet.data,
                                     timestamp,
                                 );
@@ -169,13 +195,13 @@ fn main() {
 // Function to handle TCP packets (IPv4)
 fn handle_tcp_packet(
     ip_packet: &Ipv4Packet,
-    src_ip: Option<&str>,
-    dst_ip: Option<&str>,
-    src_port: Option<&str>,
-    dst_port: Option<&str>,
-    port: Option<&str>,
-    content: Option<&str>,
-    tcp_flags: Option<&str>,
+    src_ips: &Option<Vec<&str>>,
+    dst_ips: &Option<Vec<&str>>,
+    src_ports: &Option<Vec<&str>>,
+    dst_ports: &Option<Vec<&str>>,
+    ports: &Option<Vec<&str>>,
+    contents: &Option<Vec<&str>>,
+    tcp_flags_list: &Option<Vec<&str>>,
     packet_data: &[u8],
     timestamp: pcap::TimeVal,
 ) {
@@ -197,29 +223,44 @@ fn handle_tcp_packet(
             packet_src_port,
             packet_dst_port,
             packet_payload,
-            src_ip,
-            dst_ip,
-            src_port,
-            dst_port,
-            port,
-            content,
+            src_ips,
+            dst_ips,
+            src_ports,
+            dst_ports,
+            ports,
+            contents,
             matched,
         );
 
         // Check TCP flags
-        if let Some(filter_tcp_flags_str) = tcp_flags {
-            let is_not = filter_tcp_flags_str.starts_with('!');
-            let filter_tcp_flags_str = filter_tcp_flags_str.trim_start_matches('!');
-            let filter_tcp_flags = parse_tcp_flags(filter_tcp_flags_str);
-            let flags_match = (packet_tcp_flags & filter_tcp_flags) == filter_tcp_flags;
-            if is_not {
-                if flags_match {
-                    matched = false;
+        if let Some(tcp_flags_list) = tcp_flags_list {
+            let mut flag_matched = false;
+            let mut any_invalid = false;
+            for filter_tcp_flags_str in tcp_flags_list {
+                let is_not = filter_tcp_flags_str.starts_with('!');
+                let filter_tcp_flags_str = filter_tcp_flags_str.trim_start_matches('!');
+                let filter_tcp_flags = parse_tcp_flags(filter_tcp_flags_str);
+                if filter_tcp_flags == 0 {
+                    eprintln!("Invalid TCP flags: {}", filter_tcp_flags_str);
+                    any_invalid = true;
+                    break;
                 }
-            } else {
-                if !flags_match {
-                    matched = false;
+                let flags_match = (packet_tcp_flags & filter_tcp_flags) == filter_tcp_flags;
+                if is_not {
+                    if flags_match {
+                        matched = false;
+                        break;
+                    }
+                } else {
+                    if flags_match {
+                        flag_matched = true;
+                    }
                 }
+            }
+            if any_invalid {
+                matched = false;
+            } else if !flag_matched && tcp_flags_list.iter().all(|s| !s.starts_with('!')) {
+                matched = false;
             }
         }
 
@@ -240,12 +281,12 @@ fn handle_tcp_packet(
 // Function to handle UDP packets (IPv4)
 fn handle_udp_packet(
     ip_packet: &Ipv4Packet,
-    src_ip: Option<&str>,
-    dst_ip: Option<&str>,
-    src_port: Option<&str>,
-    dst_port: Option<&str>,
-    port: Option<&str>,
-    content: Option<&str>,
+    src_ips: &Option<Vec<&str>>,
+    dst_ips: &Option<Vec<&str>>,
+    src_ports: &Option<Vec<&str>>,
+    dst_ports: &Option<Vec<&str>>,
+    ports: &Option<Vec<&str>>,
+    contents: &Option<Vec<&str>>,
     packet_data: &[u8],
     timestamp: pcap::TimeVal,
 ) {
@@ -266,12 +307,12 @@ fn handle_udp_packet(
             packet_src_port,
             packet_dst_port,
             packet_payload,
-            src_ip,
-            dst_ip,
-            src_port,
-            dst_port,
-            port,
-            content,
+            src_ips,
+            dst_ips,
+            src_ports,
+            dst_ports,
+            ports,
+            contents,
             matched,
         );
 
@@ -292,13 +333,13 @@ fn handle_udp_packet(
 // Function to handle TCP packets (IPv6)
 fn handle_tcp_packet_ipv6(
     ip_packet: &Ipv6Packet,
-    src_ip: Option<&str>,
-    dst_ip: Option<&str>,
-    src_port: Option<&str>,
-    dst_port: Option<&str>,
-    port: Option<&str>,
-    content: Option<&str>,
-    tcp_flags: Option<&str>,
+    src_ips: &Option<Vec<&str>>,
+    dst_ips: &Option<Vec<&str>>,
+    src_ports: &Option<Vec<&str>>,
+    dst_ports: &Option<Vec<&str>>,
+    ports: &Option<Vec<&str>>,
+    contents: &Option<Vec<&str>>,
+    tcp_flags_list: &Option<Vec<&str>>,
     packet_data: &[u8],
     timestamp: pcap::TimeVal,
 ) {
@@ -320,29 +361,44 @@ fn handle_tcp_packet_ipv6(
             packet_src_port,
             packet_dst_port,
             packet_payload,
-            src_ip,
-            dst_ip,
-            src_port,
-            dst_port,
-            port,
-            content,
+            src_ips,
+            dst_ips,
+            src_ports,
+            dst_ports,
+            ports,
+            contents,
             matched,
         );
 
         // Check TCP flags
-        if let Some(filter_tcp_flags_str) = tcp_flags {
-            let is_not = filter_tcp_flags_str.starts_with('!');
-            let filter_tcp_flags_str = filter_tcp_flags_str.trim_start_matches('!');
-            let filter_tcp_flags = parse_tcp_flags(filter_tcp_flags_str);
-            let flags_match = (packet_tcp_flags & filter_tcp_flags) == filter_tcp_flags;
-            if is_not {
-                if flags_match {
-                    matched = false;
+        if let Some(tcp_flags_list) = tcp_flags_list {
+            let mut flag_matched = false;
+            let mut any_invalid = false;
+            for filter_tcp_flags_str in tcp_flags_list {
+                let is_not = filter_tcp_flags_str.starts_with('!');
+                let filter_tcp_flags_str = filter_tcp_flags_str.trim_start_matches('!');
+                let filter_tcp_flags = parse_tcp_flags(filter_tcp_flags_str);
+                if filter_tcp_flags == 0 {
+                    eprintln!("Invalid TCP flags: {}", filter_tcp_flags_str);
+                    any_invalid = true;
+                    break;
                 }
-            } else {
-                if !flags_match {
-                    matched = false;
+                let flags_match = (packet_tcp_flags & filter_tcp_flags) == filter_tcp_flags;
+                if is_not {
+                    if flags_match {
+                        matched = false;
+                        break;
+                    }
+                } else {
+                    if flags_match {
+                        flag_matched = true;
+                    }
                 }
+            }
+            if any_invalid {
+                matched = false;
+            } else if !flag_matched && tcp_flags_list.iter().all(|s| !s.starts_with('!')) {
+                matched = false;
             }
         }
 
@@ -363,12 +419,12 @@ fn handle_tcp_packet_ipv6(
 // Function to handle UDP packets (IPv6)
 fn handle_udp_packet_ipv6(
     ip_packet: &Ipv6Packet,
-    src_ip: Option<&str>,
-    dst_ip: Option<&str>,
-    src_port: Option<&str>,
-    dst_port: Option<&str>,
-    port: Option<&str>,
-    content: Option<&str>,
+    src_ips: &Option<Vec<&str>>,
+    dst_ips: &Option<Vec<&str>>,
+    src_ports: &Option<Vec<&str>>,
+    dst_ports: &Option<Vec<&str>>,
+    ports: &Option<Vec<&str>>,
+    contents: &Option<Vec<&str>>,
     packet_data: &[u8],
     timestamp: pcap::TimeVal,
 ) {
@@ -389,12 +445,12 @@ fn handle_udp_packet_ipv6(
             packet_src_port,
             packet_dst_port,
             packet_payload,
-            src_ip,
-            dst_ip,
-            src_port,
-            dst_port,
-            port,
-            content,
+            src_ips,
+            dst_ips,
+            src_ports,
+            dst_ports,
+            ports,
+            contents,
             matched,
         );
 
@@ -419,148 +475,160 @@ fn apply_filters(
     packet_src_port: u16,
     packet_dst_port: u16,
     packet_payload: &[u8],
-    src_ip: Option<&str>,
-    dst_ip: Option<&str>,
-    src_port: Option<&str>,
-    dst_port: Option<&str>,
-    port: Option<&str>,
-    content: Option<&str>,
+    src_ips: &Option<Vec<&str>>,
+    dst_ips: &Option<Vec<&str>>,
+    src_ports: &Option<Vec<&str>>,
+    dst_ports: &Option<Vec<&str>>,
+    ports: &Option<Vec<&str>>,
+    contents: &Option<Vec<&str>>,
     mut matched: bool,
 ) -> bool {
-    // Check source IP
-    if let Some(filter_src_ip_str) = src_ip {
-        let is_not = filter_src_ip_str.starts_with('!');
-        let filter_src_ip_str = filter_src_ip_str.trim_start_matches('!');
-        match filter_src_ip_str.parse::<IpAddr>() {
-            Ok(filter_src_ip) => {
-                if is_not {
-                    if packet_src_ip == &filter_src_ip {
-                        matched = false;
-                    }
-                } else {
-                    if packet_src_ip != &filter_src_ip {
-                        matched = false;
+    // Helper function to parse include and exclude lists
+    fn parse_include_exclude<T: std::str::FromStr>(
+        values: &[&str],
+    ) -> Result<(Vec<T>, Vec<T>), String> {
+        let mut include_list = Vec::new();
+        let mut exclude_list = Vec::new();
+
+        for val_str in values {
+            let is_not = val_str.starts_with('!');
+            let val_str_trimmed = val_str.trim_start_matches('!');
+            match val_str_trimmed.parse::<T>() {
+                Ok(val) => {
+                    if is_not {
+                        exclude_list.push(val);
+                    } else {
+                        include_list.push(val);
                     }
                 }
+                Err(_) => {
+                    return Err(format!("Invalid value: {}", val_str_trimmed));
+                }
             }
-            Err(_) => {
-                eprintln!("Invalid source IP address: {}", filter_src_ip_str);
+        }
+
+        Ok((include_list, exclude_list))
+    }
+
+    // Source IPs
+    if let Some(filter_src_ip_list) = src_ips {
+        match parse_include_exclude::<IpAddr>(filter_src_ip_list) {
+            Ok((include_ips, exclude_ips)) => {
+                if exclude_ips.contains(packet_src_ip) {
+                    matched = false;
+                }
+                if !include_ips.is_empty() && !include_ips.contains(packet_src_ip) {
+                    matched = false;
+                }
+            }
+            Err(e) => {
+                eprintln!("{}", e);
                 matched = false;
             }
         }
     }
 
-    // Check destination IP
-    if let Some(filter_dst_ip_str) = dst_ip {
-        let is_not = filter_dst_ip_str.starts_with('!');
-        let filter_dst_ip_str = filter_dst_ip_str.trim_start_matches('!');
-        match filter_dst_ip_str.parse::<IpAddr>() {
-            Ok(filter_dst_ip) => {
-                if is_not {
-                    if packet_dst_ip == &filter_dst_ip {
-                        matched = false;
-                    }
-                } else {
-                    if packet_dst_ip != &filter_dst_ip {
-                        matched = false;
-                    }
+    // Destination IPs
+    if let Some(filter_dst_ip_list) = dst_ips {
+        match parse_include_exclude::<IpAddr>(filter_dst_ip_list) {
+            Ok((include_ips, exclude_ips)) => {
+                if exclude_ips.contains(packet_dst_ip) {
+                    matched = false;
+                }
+                if !include_ips.is_empty() && !include_ips.contains(packet_dst_ip) {
+                    matched = false;
                 }
             }
-            Err(_) => {
-                eprintln!("Invalid destination IP address: {}", filter_dst_ip_str);
+            Err(e) => {
+                eprintln!("{}", e);
                 matched = false;
             }
         }
     }
 
-    // Check source port
-    if let Some(filter_src_port_str) = src_port {
-        let is_not = filter_src_port_str.starts_with('!');
-        let filter_src_port_str = filter_src_port_str.trim_start_matches('!');
-        match filter_src_port_str.parse::<u16>() {
-            Ok(filter_src_port) => {
-                if is_not {
-                    if packet_src_port == filter_src_port {
-                        matched = false;
-                    }
-                } else {
-                    if packet_src_port != filter_src_port {
-                        matched = false;
-                    }
+    // Source Ports
+    if let Some(filter_src_port_list) = src_ports {
+        match parse_include_exclude::<u16>(filter_src_port_list) {
+            Ok((include_ports, exclude_ports)) => {
+                if exclude_ports.contains(&packet_src_port) {
+                    matched = false;
+                }
+                if !include_ports.is_empty() && !include_ports.contains(&packet_src_port) {
+                    matched = false;
                 }
             }
-            Err(_) => {
-                eprintln!("Invalid source port number: {}", filter_src_port_str);
+            Err(e) => {
+                eprintln!("{}", e);
                 matched = false;
             }
         }
     }
 
-    // Check destination port
-    if let Some(filter_dst_port_str) = dst_port {
-        let is_not = filter_dst_port_str.starts_with('!');
-        let filter_dst_port_str = filter_dst_port_str.trim_start_matches('!');
-        match filter_dst_port_str.parse::<u16>() {
-            Ok(filter_dst_port) => {
-                if is_not {
-                    if packet_dst_port == filter_dst_port {
-                        matched = false;
-                    }
-                } else {
-                    if packet_dst_port != filter_dst_port {
-                        matched = false;
-                    }
+    // Destination Ports
+    if let Some(filter_dst_port_list) = dst_ports {
+        match parse_include_exclude::<u16>(filter_dst_port_list) {
+            Ok((include_ports, exclude_ports)) => {
+                if exclude_ports.contains(&packet_dst_port) {
+                    matched = false;
+                }
+                if !include_ports.is_empty() && !include_ports.contains(&packet_dst_port) {
+                    matched = false;
                 }
             }
-            Err(_) => {
-                eprintln!("Invalid destination port number: {}", filter_dst_port_str);
+            Err(e) => {
+                eprintln!("{}", e);
                 matched = false;
             }
         }
     }
 
-    // Check port (either source or destination)
-    if let Some(filter_port_str) = port {
-        let is_not = filter_port_str.starts_with('!');
-        let filter_port_str = filter_port_str.trim_start_matches('!');
-        match filter_port_str.parse::<u16>() {
-            Ok(filter_port) => {
-                let port_match =
-                    packet_src_port == filter_port || packet_dst_port == filter_port;
-                if is_not {
-                    if port_match {
-                        matched = false;
-                    }
-                } else {
-                    if !port_match {
-                        matched = false;
-                    }
+    // Ports (either source or destination)
+    if let Some(filter_port_list) = ports {
+        match parse_include_exclude::<u16>(filter_port_list) {
+            Ok((include_ports, exclude_ports)) => {
+                let port_match = include_ports.iter().any(|&p| p == packet_src_port || p == packet_dst_port);
+                let port_exclude = exclude_ports.iter().any(|&p| p == packet_src_port || p == packet_dst_port);
+                if port_exclude {
+                    matched = false;
+                }
+                if !include_ports.is_empty() && !port_match {
+                    matched = false;
                 }
             }
-            Err(_) => {
-                eprintln!("Invalid port number: {}", filter_port_str);
+            Err(e) => {
+                eprintln!("{}", e);
                 matched = false;
             }
         }
     }
 
-    // Check packet content
-    if let Some(filter_content_str) = content {
-        let is_not = filter_content_str.starts_with('!');
-        let filter_content = filter_content_str.trim_start_matches('!');
-        let content_bytes = filter_content.as_bytes();
-        let content_found = packet_payload
-            .windows(content_bytes.len())
-            .any(|window| window == content_bytes);
+    // Content
+    if let Some(filter_content_list) = contents {
+        let mut content_matched = false;
+        let mut any_invalid = false;
+        for filter_content_str in filter_content_list {
+            let is_not = filter_content_str.starts_with('!');
+            let filter_content = filter_content_str.trim_start_matches('!');
+            let content_bytes = filter_content.as_bytes();
+            let content_found = packet_payload
+                .windows(content_bytes.len())
+                .any(|window| window == content_bytes);
 
-        if is_not {
-            if content_found {
-                matched = false;
+            if is_not {
+                if content_found {
+                    matched = false;
+                    break;
+                }
+            } else {
+                if content_found {
+                    content_matched = true;
+                }
             }
-        } else {
-            if !content_found {
-                matched = false;
-            }
+        }
+        if any_invalid {
+            matched = false;
+        } else if !content_matched && filter_content_list.iter().all(|s| !s.starts_with('!')) {
+            matched = false;
         }
     }
 
@@ -599,8 +667,8 @@ fn print_packet_info(
 ) {
     // Convert timestamp to SystemTime
     let ts_secs = timestamp.tv_sec as u64;
-    let ts_usecs = timestamp.tv_usec as u64;
-    let duration_since_epoch = std::time::Duration::new(ts_secs, (ts_usecs * 1000) as u32);
+    let ts_usecs = timestamp.tv_usec as u32;
+    let duration_since_epoch = std::time::Duration::new(ts_secs, ts_usecs * 1000);
     let system_time = UNIX_EPOCH + duration_since_epoch;
 
     // Format timestamp
