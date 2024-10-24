@@ -1,4 +1,5 @@
 # netgrep
+_(c) 2024- Andy Dixon (andy @ andydixon.com)_
 
 A Rust-based packet filtering tool that captures network packets and performs a hexdump of packets matching specified criteria. The tool supports filtering by source IP, destination IP, source port, destination port, TCP flags, and packet content. It handles both IPv4 and IPv6 packets.
 
