@@ -59,6 +59,8 @@ Note: You may need administrative privileges to capture network packets. On Unix
 
 ### Examples
 
+NOTE: The inverse can be applied by prefixing with an exclamation point.
+
 Filter by Source IP:
 
     sudo cargo run -- --src-ip 192.168.1.10
@@ -77,7 +79,7 @@ Filter by Destination Port:
 
 Filter by Port (Either Source or Destination):
 
-    sudo cargo run -- --port 22
+    sudo cargo run -- --port !22
 
 Filter by TCP Flags:
 
