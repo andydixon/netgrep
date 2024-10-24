@@ -679,7 +679,7 @@ fn print_packet_info(
 
     // Print packet info
     println!(
-        "{} Source: {} Port: {} - Destination: {} Port: {}",
+        "\n{} Source: {} Port: {} - Destination: {} Port: {}\n",
         formatted_time, src_ip, src_port, dst_ip, dst_port
     );
 }
