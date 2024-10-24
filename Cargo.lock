@@ -227,6 +227,7 @@ dependencies = [
  "chrono",
  "clap",
  "hexdump",
+ "libc",
  "pcap",
  "pnet_packet",
 ]

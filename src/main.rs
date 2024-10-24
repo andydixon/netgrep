@@ -1,6 +1,7 @@
 use clap::{App, Arg};
 use hexdump;
-use pcap::{Capture, Device};
+use libc;
+use pcap::Device;
 use pnet_packet::{
     ethernet::{EtherTypes, EthernetPacket},
     ip::IpNextHeaderProtocols,
@@ -11,14 +12,14 @@ use pnet_packet::{
     Packet,
 };
 use std::net::IpAddr;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::UNIX_EPOCH;
 
 fn main() {
     // Parse command-line arguments
     let matches = App::new("netgrep")
         .version("1.0")
         .author("Andy Dixon")
-        .about("Filters packets based on criteria and performs a hexdump on that packet")
+        .about("Filters packets based on criteria and performs a hexdump")
         .arg(
             Arg::new("src_ip")
                 .long("src-ip")
@@ -203,7 +204,7 @@ fn handle_tcp_packet(
     contents: &Option<Vec<&str>>,
     tcp_flags_list: &Option<Vec<&str>>,
     packet_data: &[u8],
-    timestamp: pcap::TimeVal,
+    timestamp: libc::timeval,
 ) {
     if let Some(tcp_packet) = TcpPacket::new(ip_packet.payload()) {
         // Extract information
@@ -288,7 +289,7 @@ fn handle_udp_packet(
     ports: &Option<Vec<&str>>,
     contents: &Option<Vec<&str>>,
     packet_data: &[u8],
-    timestamp: pcap::TimeVal,
+    timestamp: libc::timeval,
 ) {
     if let Some(udp_packet) = UdpPacket::new(ip_packet.payload()) {
         // Extract information
@@ -341,7 +342,7 @@ fn handle_tcp_packet_ipv6(
     contents: &Option<Vec<&str>>,
     tcp_flags_list: &Option<Vec<&str>>,
     packet_data: &[u8],
-    timestamp: pcap::TimeVal,
+    timestamp: libc::timeval,
 ) {
     if let Some(tcp_packet) = TcpPacket::new(ip_packet.payload()) {
         // Extract information
@@ -426,7 +427,7 @@ fn handle_udp_packet_ipv6(
     ports: &Option<Vec<&str>>,
     contents: &Option<Vec<&str>>,
     packet_data: &[u8],
-    timestamp: pcap::TimeVal,
+    timestamp: libc::timeval,
 ) {
     if let Some(udp_packet) = UdpPacket::new(ip_packet.payload()) {
         // Extract information
@@ -659,7 +660,7 @@ fn parse_tcp_flags(flags_str: &str) -> u8 {
 
 // Function to print packet information before the hexdump
 fn print_packet_info(
-    timestamp: pcap::TimeVal,
+    timestamp: libc::timeval,
     src_ip: &IpAddr,
     src_port: u16,
     dst_ip: &IpAddr,
@@ -677,7 +678,7 @@ fn print_packet_info(
 
     // Print packet info
     println!(
-        "[{}] Source: {} Port: {} - Destination: {} Port: {}",
+        "{} Source: {} Port: {} - Destination: {} Port: {}",
         formatted_time, src_ip, src_port, dst_ip, dst_port
     );
 }
